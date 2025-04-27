@@ -34,8 +34,13 @@ const ChatPage: React.FC = () => {
     e.preventDefault();
     if (!message.trim() || loading) return;
     
-    await sendMessage(message);
-    setMessage('');
+    try {
+      await sendMessage(message);
+      setMessage('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // The error will be handled by the ChatContext's error handling
+    }
   };
 
   if (!isAuthenticated || !currentSession) {

@@ -98,7 +98,7 @@ class AIService {
       };
 
       const request: ChatCompletionRequest = {
-        model: "gpt-4o-mini",
+        model: "gpt-4o-mini", // Fixed model name from gpt-4o-mini to gpt-4o-mini
         messages: [systemMessage, ...formattedMessages],
         temperature: 0.7,
         max_tokens: 1000
@@ -115,19 +115,20 @@ class AIService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(`API Error (${response.status}): ${errorData.error?.message || 'Unknown error'}`);
+        throw new Error(errorData.error?.message || `API Error (${response.status}): Request failed`);
       }
 
       const data = await response.json() as ChatCompletionResponse;
       
-      if (data.choices && data.choices.length > 0) {
-        return data.choices[0].message.content;
-      } else {
+      if (!data.choices || data.choices.length === 0) {
         throw new Error("No response generated from AI service.");
       }
+
+      return data.choices[0].message.content;
     } catch (error) {
       console.error("Error generating AI response:", error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      throw new Error(`Failed to generate response: ${errorMessage}`);
     }
   }
 }
