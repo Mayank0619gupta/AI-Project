@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Navbar } from '@/components/Navbar';
 import { Background3D } from '@/components/Background3D';
 import { useAuth } from '@/contexts/AuthContext';

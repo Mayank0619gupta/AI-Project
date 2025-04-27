@@ -36,11 +36,11 @@ function AnimatedSphere({ position, scale, color, speed, distort }: {
 
 function Scene() {
   const spheres = [
-    { position: [-6, 0, -5], scale: 1.5, color: "#6366f1", speed: 0.5, distort: 0.4 },
-    { position: [5, -2, -10], scale: 2, color: "#8b5cf6", speed: 0.3, distort: 0.5 },
-    { position: [-4, 2, -15], scale: 2.5, color: "#ec4899", speed: 0.2, distort: 0.3 },
-    { position: [10, 0, -15], scale: 1.8, color: "#3b82f6", speed: 0.4, distort: 0.6 },
-    { position: [0, 5, -20], scale: 3, color: "#14b8a6", speed: 0.15, distort: 0.2 },
+    { position: [-6, 0, -5] as [number, number, number], scale: 1.5, color: "#6366f1", speed: 0.5, distort: 0.4 },
+    { position: [5, -2, -10] as [number, number, number], scale: 2, color: "#8b5cf6", speed: 0.3, distort: 0.5 },
+    { position: [-4, 2, -15] as [number, number, number], scale: 2.5, color: "#ec4899", speed: 0.2, distort: 0.3 },
+    { position: [10, 0, -15] as [number, number, number], scale: 1.8, color: "#3b82f6", speed: 0.4, distort: 0.6 },
+    { position: [0, 5, -20] as [number, number, number], scale: 3, color: "#14b8a6", speed: 0.15, distort: 0.2 },
   ];
 
   return (
