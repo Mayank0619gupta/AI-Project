@@ -97,7 +97,7 @@ class AIService {
       };
 
       const request: ChatCompletionRequest = {
-        model: "gpt-4o-mini", // Fixed model name from gpt-4o-mini to gpt-4o-mini
+        model: "gpt-4o-mini",
         messages: [systemMessage, ...formattedMessages],
         temperature: 0.7,
         max_tokens: 1000
