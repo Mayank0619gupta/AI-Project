@@ -1,141 +1,42 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import aiService from '@/services/aiService';
-
-export type Message = {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant' | 'system';
-  timestamp: number;
-};
-
-export type ChatSession = {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: number;
-  updatedAt: number;
-};
-
-type ChatContextType = {
-  currentSession: ChatSession | null;
-  sessions: ChatSession[];
-  loading: boolean;
-  error: string | null;
-  createNewSession: () => void;
-  loadSession: (sessionId: string) => void;
-  sendMessage: (message: string) => Promise<void>;
-  deleteSession: (sessionId: string) => void;
-  apiKeyConfigured: boolean;
-};
+import { ChatContextType, Message, ChatSession } from '@/types/chat';
+import { useChatState } from '@/hooks/useChatState';
+import {
+  createNewChatSession,
+  saveSessionsToStorage,
+  updateSessionTitle,
+  getFallbackResponse,
+  CURRENT_SESSION_KEY
+} from '@/utils/chatUtils';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-const SESSIONS_STORAGE_KEY = 'startup_vision_chat_sessions';
-const CURRENT_SESSION_KEY = 'startup_vision_current_session';
-
-// Fallback response when API is not available
-const getFallbackResponse = async (message: string): Promise<string> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Mock response logic for business idea assessment
-  if (message.toLowerCase().includes('idea') || message.toLowerCase().includes('startup') || message.toLowerCase().includes('business')) {
-    return `Thank you for sharing your business idea. As your AI business analyst, here's my assessment:
-
-1. Market Potential: Your idea has potential in the current market landscape.
-2. Unique Value Proposition: Consider refining what makes your solution truly unique.
-3. Target Audience: Be more specific about which student demographics you're serving.
-4. Revenue Model: Explore multiple revenue streams to ensure sustainability.
-5. Next Steps: I recommend conducting a small-scale pilot with your fellow students.
-
-Would you like me to elaborate on any of these points or discuss specific aspects of your business model?
-
-Note: This is a fallback response. To get real-time AI analysis, please configure your API key in settings.`;
-  } else {
-    return "I'm your business idea assessment assistant for students. I can help analyze your startup concept, suggest improvements, or discuss market strategies. Please share your business idea or ask a specific question about entrepreneurship.\n\nNote: This is a fallback response. To get real-time AI analysis, please configure your API key in settings.";
-  }
-};
-
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [apiKeyConfigured, setApiKeyConfigured] = useState<boolean>(false);
-
-  // Check if API key is configured
-  useEffect(() => {
-    const checkApiKey = () => {
-      const hasKey = aiService.hasApiKey();
-      setApiKeyConfigured(hasKey);
-    };
-
-    checkApiKey();
-    // Re-check every time component mounts
-    window.addEventListener('storage', checkApiKey);
-    
-    return () => {
-      window.removeEventListener('storage', checkApiKey);
-    };
-  }, []);
-
-  // Load sessions from localStorage when user changes
-  useEffect(() => {
-    if (user) {
-      loadSessions();
-      const currentSessionId = localStorage.getItem(CURRENT_SESSION_KEY);
-      if (currentSessionId) {
-        const session = sessions.find(s => s.id === currentSessionId);
-        if (session) {
-          setCurrentSession(session);
-        } else if (sessions.length > 0) {
-          setCurrentSession(sessions[0]);
-          localStorage.setItem(CURRENT_SESSION_KEY, sessions[0].id);
-        }
-      } else if (sessions.length > 0) {
-        setCurrentSession(sessions[0]);
-        localStorage.setItem(CURRENT_SESSION_KEY, sessions[0].id);
-      }
-    } else {
-      setSessions([]);
-      setCurrentSession(null);
-      localStorage.removeItem(CURRENT_SESSION_KEY);
-    }
-  }, [user]);
-
-  const loadSessions = () => {
-    if (!user) return;
-    
-    const storedSessions = localStorage.getItem(`${SESSIONS_STORAGE_KEY}_${user.regNumber}`);
-    if (storedSessions) {
-      setSessions(JSON.parse(storedSessions));
-    }
-  };
-
-  const saveSessions = (updatedSessions: ChatSession[]) => {
-    if (!user) return;
-    
-    setSessions(updatedSessions);
-    localStorage.setItem(`${SESSIONS_STORAGE_KEY}_${user.regNumber}`, JSON.stringify(updatedSessions));
-  };
+  const {
+    sessions,
+    setSessions,
+    currentSession,
+    setCurrentSession,
+    loading,
+    setLoading,
+    error,
+    setError,
+    apiKeyConfigured
+  } = useChatState(user?.regNumber);
 
   const createNewSession = () => {
     if (!user) return;
     
-    const newSession: ChatSession = {
-      id: Date.now().toString(),
-      title: `New Chat ${sessions.length + 1}`,
-      messages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    
+    const newSession = createNewChatSession(sessions.length);
     const updatedSessions = [newSession, ...sessions];
-    saveSessions(updatedSessions);
+    
+    saveSessionsToStorage(updatedSessions, user.regNumber);
+    setSessions(updatedSessions);
     setCurrentSession(newSession);
     localStorage.setItem(CURRENT_SESSION_KEY, newSession.id);
   };
@@ -146,21 +47,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentSession(session);
       localStorage.setItem(CURRENT_SESSION_KEY, sessionId);
     }
-  };
-
-  const updateSessionTitle = (sessionId: string, firstMessage: string) => {
-    // Generate a title based on the first message
-    const title = firstMessage.length > 30 
-      ? `${firstMessage.substring(0, 30)}...` 
-      : firstMessage;
-    
-    const updatedSessions = sessions.map(session => 
-      session.id === sessionId 
-        ? { ...session, title } 
-        : session
-    );
-    
-    saveSessions(updatedSessions);
   };
 
   const sendMessage = async (content: string): Promise<void> => {
@@ -181,7 +67,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
 
-      // Add user message
       const userMessage: Message = {
         id: `msg_${Date.now()}`,
         content,
@@ -195,30 +80,28 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: Date.now(),
       };
 
-      // Update the session immediately with user message
-      const updatedSessions = sessions.map(session => 
+      let updatedSessions = sessions.map(session => 
         session.id === currentSession.id ? updatedSession : session
       );
-      saveSessions(updatedSessions);
+      
+      saveSessionsToStorage(updatedSessions, user.regNumber);
+      setSessions(updatedSessions);
       setCurrentSession(updatedSession);
 
-      // If this is the first message, update the title
       if (currentSession.messages.length === 0) {
-        updateSessionTitle(currentSession.id, content);
+        updatedSessions = updateSessionTitle(updatedSessions, currentSession.id, content);
+        saveSessionsToStorage(updatedSessions, user.regNumber);
+        setSessions(updatedSessions);
       }
 
-      // Get AI response - either from API or fallback
       let responseText: string;
-      
       try {
         if (apiKeyConfigured) {
-          // Use real API
           responseText = await aiService.generateResponse([
             ...updatedSession.messages.filter(m => m.role !== 'system'),
             userMessage
           ]);
         } else {
-          // Use fallback
           responseText = await getFallbackResponse(content);
         }
       } catch (error) {
@@ -227,7 +110,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (error instanceof Error ? error.message : "Please try again later.");
       }
 
-      // Add AI message
       const aiMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         content: responseText,
@@ -241,11 +123,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: Date.now(),
       };
 
-      // Update the session with AI response
-      const finalSessions = updatedSessions.map(session => 
+      updatedSessions = updatedSessions.map(session => 
         session.id === currentSession.id ? updatedSession : session
       );
-      saveSessions(finalSessions);
+      
+      saveSessionsToStorage(updatedSessions, user.regNumber);
+      setSessions(updatedSessions);
       setCurrentSession(updatedSession);
     } catch (err) {
       setError("Failed to send message. Please try again.");
@@ -261,7 +144,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteSession = (sessionId: string) => {
     const updatedSessions = sessions.filter(session => session.id !== sessionId);
-    saveSessions(updatedSessions);
+    if (user) {
+      saveSessionsToStorage(updatedSessions, user.regNumber);
+    }
+    setSessions(updatedSessions);
     
     if (currentSession?.id === sessionId) {
       if (updatedSessions.length > 0) {

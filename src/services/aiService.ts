@@ -1,5 +1,4 @@
-
-import { Message } from '@/contexts/ChatContext';
+import { Message } from '@/types/chat';
 
 // API configuration
 const API_URL = "https://api.openai.com/v1/chat/completions";
