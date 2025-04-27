@@ -2,11 +2,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import aiService from '@/services/aiService';
 
 export type Message = {
   id: string;
   content: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   timestamp: number;
 };
 
@@ -27,6 +28,7 @@ type ChatContextType = {
   loadSession: (sessionId: string) => void;
   sendMessage: (message: string) => Promise<void>;
   deleteSession: (sessionId: string) => void;
+  apiKeyConfigured: boolean;
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -34,8 +36,8 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 const SESSIONS_STORAGE_KEY = 'startup_vision_chat_sessions';
 const CURRENT_SESSION_KEY = 'startup_vision_current_session';
 
-// Mock Gemini API response function - in a real app, this would call the actual API
-const mockGeminiResponse = async (message: string): Promise<string> => {
+// Fallback response when API is not available
+const getFallbackResponse = async (message: string): Promise<string> => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
@@ -49,9 +51,11 @@ const mockGeminiResponse = async (message: string): Promise<string> => {
 4. Revenue Model: Explore multiple revenue streams to ensure sustainability.
 5. Next Steps: I recommend conducting a small-scale pilot with your fellow students.
 
-Would you like me to elaborate on any of these points or discuss specific aspects of your business model?`;
+Would you like me to elaborate on any of these points or discuss specific aspects of your business model?
+
+Note: This is a fallback response. To get real-time AI analysis, please configure your API key in settings.`;
   } else {
-    return "I'm your business idea assessment assistant for students. I can help analyze your startup concept, suggest improvements, or discuss market strategies. Please share your business idea or ask a specific question about entrepreneurship.";
+    return "I'm your business idea assessment assistant for students. I can help analyze your startup concept, suggest improvements, or discuss market strategies. Please share your business idea or ask a specific question about entrepreneurship.\n\nNote: This is a fallback response. To get real-time AI analysis, please configure your API key in settings.";
   }
 };
 
@@ -61,6 +65,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState<boolean>(false);
+
+  // Check if API key is configured
+  useEffect(() => {
+    const checkApiKey = () => {
+      const hasKey = aiService.hasApiKey();
+      setApiKeyConfigured(hasKey);
+    };
+
+    checkApiKey();
+    // Re-check every time component mounts
+    window.addEventListener('storage', checkApiKey);
+    
+    return () => {
+      window.removeEventListener('storage', checkApiKey);
+    };
+  }, []);
 
   // Load sessions from localStorage when user changes
   useEffect(() => {
@@ -186,8 +207,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateSessionTitle(currentSession.id, content);
       }
 
-      // Get AI response
-      const responseText = await mockGeminiResponse(content);
+      // Get AI response - either from API or fallback
+      let responseText: string;
+      
+      try {
+        if (apiKeyConfigured) {
+          // Use real API
+          responseText = await aiService.generateResponse([
+            ...updatedSession.messages.filter(m => m.role !== 'system'),
+            userMessage
+          ]);
+        } else {
+          // Use fallback
+          responseText = await getFallbackResponse(content);
+        }
+      } catch (error) {
+        console.error("Error getting AI response:", error);
+        responseText = "I'm sorry, I encountered an error while processing your request. " + 
+          (error instanceof Error ? error.message : "Please try again later.");
+      }
 
       // Add AI message
       const aiMessage: Message = {
@@ -245,6 +283,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadSession,
     sendMessage,
     deleteSession,
+    apiKeyConfigured,
   };
 
   return (

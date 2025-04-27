@@ -5,15 +5,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Background3D } from '@/components/Background3D';
-import { SendHorizonal, Plus } from 'lucide-react';
+import { ApiKeySettings } from '@/components/ApiKeySettings';
+import { SendHorizonal, Plus, Settings } from 'lucide-react';
 
 const ChatPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const { currentSession, createNewSession, sendMessage, loading } = useChat();
+  const { currentSession, createNewSession, sendMessage, loading, apiKeyConfigured } = useChat();
   const [message, setMessage] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -54,15 +55,39 @@ const ChatPage: React.FC = () => {
                 {currentSession.title}
               </h1>
               
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={createNewSession}
-                className="flex items-center gap-1"
-              >
-                <Plus className="h-4 w-4" />
-                New Chat
-              </Button>
+              <div className="flex items-center space-x-2">
+                {!apiKeyConfigured && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="flex items-center gap-1 bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 hover:text-yellow-200"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Set API Key
+                  </Button>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className={apiKeyConfigured ? "flex items-center gap-1" : "hidden md:flex items-center gap-1"}
+                >
+                  <Settings className="h-4 w-4" />
+                  {apiKeyConfigured ? "API Settings" : "Settings"}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={createNewSession}
+                  className="flex items-center gap-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Chat
+                </Button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto glass-morphism rounded-lg p-4 mb-4">
@@ -77,6 +102,22 @@ const ChatPage: React.FC = () => {
                   <p className="text-muted-foreground max-w-sm">
                     I'm your business analysis assistant. Share your startup idea and I'll provide feedback, suggestions, and help improve your concept.
                   </p>
+                  
+                  {!apiKeyConfigured && (
+                    <div className="mt-4 p-3 rounded-lg bg-yellow-900/20 border border-yellow-700/50 max-w-sm">
+                      <p className="text-sm text-yellow-300 mb-2">
+                        <strong>Using Demo Mode:</strong> For more accurate responses, configure your OpenAI API key.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 hover:text-yellow-200 text-xs"
+                      >
+                        Configure API Key
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -140,6 +181,8 @@ const ChatPage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <ApiKeySettings open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </>
   );
 };

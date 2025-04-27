@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
 import { Navbar } from '@/components/Navbar';
 import { Background3D } from '@/components/Background3D';
+import { ApiKeySettings } from '@/components/ApiKeySettings';
 import { 
   Card, 
   CardContent, 
@@ -14,7 +15,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Calendar, Trash2 } from 'lucide-react';
+import { MessageCircle, Calendar, Trash2, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +30,8 @@ import {
 
 const HistoryPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const { sessions, loadSession, deleteSession } = useChat();
+  const { sessions, loadSession, deleteSession, apiKeyConfigured } = useChat();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -58,12 +60,29 @@ const HistoryPage: React.FC = () => {
         
         <div className="flex-1 container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
+            <div className="flex justify-between items-center mb-8">
               <h1 className="text-3xl font-bold text-gradient">Chat History</h1>
-              <p className="text-muted-foreground">
-                Review your previous conversations with the StartupVision AI
-              </p>
+              
+              {!apiKeyConfigured && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="flex items-center gap-2 bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 hover:text-yellow-200"
+                >
+                  <Settings className="h-4 w-4" />
+                  Configure API Key
+                </Button>
+              )}
             </div>
+            
+            {!apiKeyConfigured && (
+              <div className="glass-morphism rounded-lg p-4 mb-6 border border-yellow-700/50">
+                <p className="text-sm text-yellow-300">
+                  <strong>Note:</strong> You're currently using demo mode with preset responses. For personalized AI analysis of your business ideas, configure your API key.
+                </p>
+              </div>
+            )}
             
             {sessions.length === 0 ? (
               <div className="glass-morphism rounded-lg p-12 text-center">
@@ -145,6 +164,8 @@ const HistoryPage: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <ApiKeySettings open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
     </>
   );
 };
