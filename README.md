@@ -1,6 +1,6 @@
-# AI-Project
+# Startup-Vision
 
-Welcome to the **AI-Project** repository! This project leverages the power of artificial intelligence, developed primarily in TypeScript, to provide innovative solutions. Explore, contribute, and make the most out of this dynamic AI-powered project.
+Welcome to the **Startup-Vision** repository! This project leverages the power of artificial intelligence, developed primarily in TypeScript, to provide innovative solutions. Explore, contribute, and make the most out of this dynamic AI-powered project.
 
 ---
 
@@ -28,8 +28,8 @@ To get started with this project, follow these steps:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/Mayank0619gupta/AI-Project.git
-   cd AI-Project
+   git clone https://github.com/Mayank0619gupta/Startup-Vision.git
+   cd Startup-Vision
    ```
 
 2. **Install dependencies**:
